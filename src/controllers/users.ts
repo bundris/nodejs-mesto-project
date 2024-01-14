@@ -11,7 +11,9 @@ export const createUser = (req: Request, res: Response) => {
     about,
     avatar,
   })
-    .then((user) => res.send({ data: user._id }))
+    .then((user) => res
+      .status(http2.constants.HTTP_STATUS_CREATED)
+      .send({ data: user._id }))
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
         return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
@@ -63,7 +65,10 @@ export const updateUser = (req: Request, res: Response) => {
   User.findByIdAndUpdate(
     userId,
     { name, about },
-    { new: true },
+    {
+      new: true,
+      runValidators: true,
+    },
   )
     .orFail()
     .then((user) => res.send({ data: user }))
@@ -95,7 +100,10 @@ export const updateAvatar = (req: Request, res: Response) => {
   User.findByIdAndUpdate(
     userId,
     { avatar },
-    { new: true },
+    {
+      new: true,
+      runValidators: true,
+    },
   )
     .orFail()
     .then((user) => res.send({ data: user }))

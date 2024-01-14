@@ -12,7 +12,9 @@ const createCard = (req: SessionRequest, res: Response) => {
     link,
     owner: req.user?._id,
   })
-    .then((card) => res.send({ data: card }))
+    .then((card) => res
+      .status(http2.constants.HTTP_STATUS_CREATED)
+      .send({ data: card }))
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
         return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
@@ -52,11 +54,6 @@ const likeCard = (req: SessionRequest, res: Response) => {
           message: 'Карточка не найдена',
         });
       }
-      if (err instanceof mongoose.Error.ValidationError) {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Некорректный формат входных данных',
-        });
-      }
       if (err instanceof mongoose.Error.CastError) {
         return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
           message: 'Некорректный ID карточки',
@@ -82,11 +79,6 @@ const dislikeCard = (req: SessionRequest, res: Response) => {
           message: 'Карточка не найдена',
         });
       }
-      if (err instanceof mongoose.Error.ValidationError) {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Некорректный формат входных данных',
-        });
-      }
       if (err instanceof mongoose.Error.CastError) {
         return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
           message: 'Некорректный ID карточки',
@@ -110,9 +102,9 @@ const deleteCard = (req: Request, res: Response) => {
           message: 'Карточка не найдена',
         });
       }
-      if (err instanceof mongoose.Error.ValidationError) {
+      if (err instanceof mongoose.Error.CastError) {
         return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Некорректный формат входных данных',
+          message: 'Некорректный ID карточки',
         });
       }
       return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
