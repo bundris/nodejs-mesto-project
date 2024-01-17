@@ -22,8 +22,9 @@ const createCard = (req: SessionRequest, res: Response, next: NextFunction) => {
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
         next(new BadRequestError('Невалидные входные данные'));
+      } else {
+        next(new CustomError('На сервере произошла ошибка'));
       }
-      next(new CustomError('На сервере произошла ошибка'));
     });
 };
 
@@ -49,11 +50,11 @@ const likeCard = (req: SessionRequest, res: Response, next: NextFunction) => {
     .catch((err) => {
       if (err instanceof mongoose.Error.DocumentNotFoundError) {
         next(new NotFoundError('Карточка не найдена'));
-      }
-      if (err instanceof mongoose.Error.CastError) {
+      } else if (err instanceof mongoose.Error.CastError) {
         next(new BadRequestError('Некорректный ID карточки'));
+      } else {
+        next(new CustomError('На сервере произошла ошибка'));
       }
-      next(new CustomError('На сервере произошла ошибка'));
     });
 };
 
@@ -68,11 +69,11 @@ const dislikeCard = (req: SessionRequest, res: Response, next: NextFunction) => 
     .catch((err) => {
       if (err instanceof mongoose.Error.DocumentNotFoundError) {
         next(new NotFoundError('Карточка не найдена'));
-      }
-      if (err instanceof mongoose.Error.CastError) {
+      } else if (err instanceof mongoose.Error.CastError) {
         next(new BadRequestError('Некорректный ID карточки'));
+      } else {
+        next(new CustomError('На сервере произошла ошибка'));
       }
-      next(new CustomError('На сервере произошла ошибка'));
     });
 };
 
@@ -84,20 +85,22 @@ const deleteCard = (req: SessionRequest, res: Response, next: NextFunction) => {
     .then((card: ICard) => {
       if (req.user?._id !== String(card.owner)) {
         next(new ForbiddenError('Нехорошо удалять чужие карточки'));
+      } else {
+        Card.findByIdAndDelete(cardId)
+          .orFail()
+          .then(() => res.status(200).send({ message: 'Карточка удалена' }))
+          .catch((err) => {
+            if (err instanceof mongoose.Error.DocumentNotFoundError) {
+              throw new NotFoundError('Карточка не найдена');
+            } else if (err instanceof mongoose.Error.CastError) {
+              throw new BadRequestError('Некорректный ID карточки');
+            } else {
+              throw new CustomError('На сервере произошла ошибка');
+            }
+          });
       }
-    });
-  Card.findByIdAndDelete(cardId)
-    .orFail()
-    .then(() => res.status(200).send({ message: 'Карточка удалена' }))
-    .catch((err) => {
-      if (err instanceof mongoose.Error.DocumentNotFoundError) {
-        next(new NotFoundError('Карточка не найдена'));
-      }
-      if (err instanceof mongoose.Error.CastError) {
-        next(new BadRequestError('Некорректный ID карточки'));
-      }
-      next(new CustomError('На сервере произошла ошибка'));
-    });
+    })
+    .catch(next);
 };
 
 export {

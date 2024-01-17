@@ -22,7 +22,7 @@ const validateUser = celebrate({
 const validateUserInfo = celebrate({
   // Валидируем name/about
   params: Joi.object().keys({
-    userId: Joi.string().required(),
+    userId: Joi.string().required().hex(),
   }),
   body: Joi.object().keys({
     name: Joi.string().min(2).max(30),
@@ -38,7 +38,7 @@ const validateAvatar = celebrate({
 // Card related validations
 const validateId = celebrate({
   params: Joi.object().keys({
-    id: Joi.string().required(),
+    id: Joi.string().required().hex(),
   }),
 });
 

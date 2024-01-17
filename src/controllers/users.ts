@@ -51,14 +51,10 @@ export const getUserById = (req: Request, res: Response, next: NextFunction) => 
 };
 
 export const getSignedUser = (req: SessionRequest, res: Response, next: NextFunction) => {
-  const userId = req.user?._id;
-  if (userId === undefined) {
-    next(new NotAuthorizedError('Пользователь не авторизован'));
-  } else {
-    getUser(userId)
-      .then((user) => res.send({ data: user }))
-      .catch(next);
-  }
+  const userId = req.user?._id!; // существование гарантировано мидлваром авторизации
+  getUser(userId)
+    .then((user) => res.send({ data: user }))
+    .catch(next);
 };
 
 export const getAllUsers = (_req: Request, res: Response, next: NextFunction) => {
