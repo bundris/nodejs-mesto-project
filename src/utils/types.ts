@@ -1,5 +1,5 @@
 import { Request } from 'express';
-import { Schema } from 'mongoose';
+import mongoose, { Model, Schema } from 'mongoose';
 
 // Data types and interfaces
 interface ICard {
@@ -14,6 +14,14 @@ interface IUser {
   name: string,
   about: string,
   avatar: string,
+  email: string,
+  password: string,
+}
+
+interface UserModel extends Model<IUser> {
+  // eslint-disable-next-line no-unused-vars
+  findUserByCredentials: (email: string, password: string) =>
+    Promise<mongoose.Document<unknown, any, IUser>>;
 }
 
 // Express extensions
@@ -23,4 +31,6 @@ interface SessionRequest extends Request {
   }
 }
 
-export { SessionRequest, IUser, ICard };
+export {
+  SessionRequest, IUser, ICard, UserModel,
+};

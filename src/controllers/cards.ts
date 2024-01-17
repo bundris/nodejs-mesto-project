@@ -1,11 +1,15 @@
-import { Request, Response } from 'express';
+import { NextFunction, Response } from 'express';
 import mongoose from 'mongoose';
 import http2 from 'http2';
 import Card from '../models/card';
-import { SessionRequest } from '../utils/types';
+import { ICard, SessionRequest } from '../utils/types';
+import BadRequestError from '../errors/BadRequestError';
+import CustomError from '../errors/CustomError';
+import NotFoundError from '../errors/NotFoundError';
+import ForbiddenError from '../errors/ForbiddenError';
 
 // Create operations
-const createCard = (req: SessionRequest, res: Response) => {
+const createCard = (req: SessionRequest, res: Response, next: NextFunction) => {
   const { name, link } = req.body;
   Card.create({
     name,
@@ -17,29 +21,23 @@ const createCard = (req: SessionRequest, res: Response) => {
       .send({ data: card }))
     .catch((err) => {
       if (err instanceof mongoose.Error.ValidationError) {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Невалидные входные данные',
-        });
+        next(new BadRequestError('Невалидные входные данные'));
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-        message: err.message,
-      });
+      next(new CustomError('На сервере произошла ошибка'));
     });
 };
 
 // Read operations
-const getAllCards = (req: SessionRequest, res: Response) => {
+const getAllCards = (req: SessionRequest, res: Response, next: NextFunction) => {
   Card.find({})
     .then((card) => {
       res.send({ data: card });
     })
-    .catch(() => res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-      message: 'На сервере произошла ошибка',
-    }));
+    .catch(() => next(new CustomError('На сервере произошла ошибка')));
 };
 
 // Update operations
-const likeCard = (req: SessionRequest, res: Response) => {
+const likeCard = (req: SessionRequest, res: Response, next: NextFunction) => {
   const { cardId } = req.params;
   Card.findByIdAndUpdate(
     cardId,
@@ -50,22 +48,16 @@ const likeCard = (req: SessionRequest, res: Response) => {
     .then((card) => res.send({ data: card }))
     .catch((err) => {
       if (err instanceof mongoose.Error.DocumentNotFoundError) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
-          message: 'Карточка не найдена',
-        });
+        next(new NotFoundError('Карточка не найдена'));
       }
       if (err instanceof mongoose.Error.CastError) {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Некорректный ID карточки',
-        });
+        next(new BadRequestError('Некорректный ID карточки'));
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-        message: 'На сервере произошла ошибка',
-      });
+      next(new CustomError('На сервере произошла ошибка'));
     });
 };
 
-const dislikeCard = (req: SessionRequest, res: Response) => {
+const dislikeCard = (req: SessionRequest, res: Response, next: NextFunction) => {
   Card.findByIdAndUpdate(
     req.params.cardId,
     { $pull: { likes: req.user?._id } }, // убрать _id из массива
@@ -75,41 +67,36 @@ const dislikeCard = (req: SessionRequest, res: Response) => {
     .then((card) => res.send({ data: card }))
     .catch((err) => {
       if (err instanceof mongoose.Error.DocumentNotFoundError) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
-          message: 'Карточка не найдена',
-        });
+        next(new NotFoundError('Карточка не найдена'));
       }
       if (err instanceof mongoose.Error.CastError) {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Некорректный ID карточки',
-        });
+        next(new BadRequestError('Некорректный ID карточки'));
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-        message: 'На сервере произошла ошибка',
-      });
+      next(new CustomError('На сервере произошла ошибка'));
     });
 };
 
 // Delete operations
-const deleteCard = (req: Request, res: Response) => {
+const deleteCard = (req: SessionRequest, res: Response, next: NextFunction) => {
   const { cardId } = req.params;
+  Card.findById(cardId)
+    .orFail()
+    .then((card: ICard) => {
+      if (req.user?._id !== String(card.owner)) {
+        next(new ForbiddenError('Нехорошо удалять чужие карточки'));
+      }
+    });
   Card.findByIdAndDelete(cardId)
     .orFail()
     .then(() => res.status(200).send({ message: 'Карточка удалена' }))
     .catch((err) => {
       if (err instanceof mongoose.Error.DocumentNotFoundError) {
-        return res.status(http2.constants.HTTP_STATUS_NOT_FOUND).send({
-          message: 'Карточка не найдена',
-        });
+        next(new NotFoundError('Карточка не найдена'));
       }
       if (err instanceof mongoose.Error.CastError) {
-        return res.status(http2.constants.HTTP_STATUS_BAD_REQUEST).send({
-          message: 'Некорректный ID карточки',
-        });
+        next(new BadRequestError('Некорректный ID карточки'));
       }
-      return res.status(http2.constants.HTTP_STATUS_INTERNAL_SERVER_ERROR).send({
-        message: 'На сервере произошла ошибка',
-      });
+      next(new CustomError('На сервере произошла ошибка'));
     });
 };
 
