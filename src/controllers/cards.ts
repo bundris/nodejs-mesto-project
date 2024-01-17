@@ -87,20 +87,21 @@ const deleteCard = (req: SessionRequest, res: Response, next: NextFunction) => {
         next(new ForbiddenError('Нехорошо удалять чужие карточки'));
       } else {
         Card.findByIdAndDelete(cardId)
-          .orFail()
           .then(() => res.status(200).send({ message: 'Карточка удалена' }))
-          .catch((err) => {
-            if (err instanceof mongoose.Error.DocumentNotFoundError) {
-              throw new NotFoundError('Карточка не найдена');
-            } else if (err instanceof mongoose.Error.CastError) {
-              throw new BadRequestError('Некорректный ID карточки');
-            } else {
-              throw new CustomError('На сервере произошла ошибка');
-            }
+          .catch(() => {
+            throw new CustomError('Не удалось удалить карточку');
           });
       }
     })
-    .catch(next);
+    .catch((err) => {
+      if (err instanceof mongoose.Error.DocumentNotFoundError) {
+        next(new NotFoundError('Карточка не найдена'));
+      } else if (err instanceof mongoose.Error.CastError) {
+        next(new BadRequestError('Некорректный ID карточки'));
+      } else {
+        next(new CustomError('На сервере произошла ошибка'));
+      }
+    });
 };
 
 export {
